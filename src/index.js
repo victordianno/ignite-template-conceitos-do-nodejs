@@ -18,7 +18,7 @@ function checksExistsUserAccount(request, response, next) {
   }
   request.user = user;
 
-  next();
+  return next();
 }
 
 function checksExistsTodo(request, response, next) {
@@ -38,41 +38,48 @@ function checksExistsTodo(request, response, next) {
 app.post('/users', (request, response) => {
   const { name, username } = request.body;
 
-  const user = users.find((user) => user.username === username)
-if (user){
-  return response.status(400).json({error: "Username already exists!"});
-}
-  users.push({
-    id: uuidv4(),
-    name: name, 
-    username: username, 
-    todos: []
-  });
+const userFind = users.find((user) => user.username === username)
 
-  return response.status(201).json(users);
+if (userFind)
+{
+  return response.status(400).json({error: "User already exists!"});
+}
+
+const user = {
+  id: uuidv4(),
+  name,
+  username,
+  todos: []
+}
+
+  users.push(user);
+
+  return response.status(201).json(user);
 });
 
-app.get('/todos', checksExistsUserAccount, (request, response) => {
+app.get('/todos',checksExistsUserAccount, (request, response) => {
 
-  const user = request.user;
+  const { user } = request;
  
-  return response.status(200).json(user.todos)
+  return response.json(user.todos)
 });
 
 app.post('/todos', checksExistsUserAccount, (request, response) => {
   const { title, deadline } = request.body;
 
-  const user = request.user;
+  const { user } = request;
 
-  user.todos.push({
+  const todo = {
     id: uuidv4(),
-    title: title,
+    title,
     done: false, 
     deadline: new Date(deadline),// '2021-02-27T00:00:00.000Z'
     created_at: new Date()
-  });
+  }
 
-  return response.status(201).json(user.todos);
+  user.todos.push(todo);
+
+  return response.status(201).json(todo);
 });
 
 app.put('/todos/:id',checksExistsUserAccount,checksExistsTodo, (request, response) => {
@@ -87,8 +94,6 @@ app.put('/todos/:id',checksExistsUserAccount,checksExistsTodo, (request, respons
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, checksExistsTodo, (request, response) => {
-  const user = request.user;
-  const { id }  = request.params;
   const todo = request.todo;
 
   todo.done = true;
